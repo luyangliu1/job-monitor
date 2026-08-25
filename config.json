@@ -1,0 +1,344 @@
+{
+  "version": 1,
+  "outputLimit": 100,
+  "autoConfigure": true,
+  "notificationFilters": {
+    "excludeTitlePatterns": [
+      {
+        "reason": "senior",
+        "pattern": "\\b(?:senior|sr\\.?)\\b"
+      },
+      {
+        "reason": "principal",
+        "pattern": "\\bprincipal\\b"
+      },
+      {
+        "reason": "executive",
+        "pattern": "\\b(?:directors?|presidents?|vp|chief)\\b"
+      },
+      {
+        "reason": "manager",
+        "pattern": "\\bmanagers?\\b"
+      },
+      {
+        "reason": "coordinator",
+        "pattern": "\\bcoordinators?\\b"
+      },
+      {
+        "reason": "technician",
+        "pattern": "\\btechn(?:ic|it)ians?\\b"
+      },
+      {
+        "reason": "specialist",
+        "pattern": "\\bspecialists?\\b"
+      },
+      {
+        "reason": "advisor",
+        "pattern": "\\badvis[oe]rs?\\b"
+      },
+      {
+        "reason": "lead",
+        "pattern": "\\bleads?\\b"
+      },
+      {
+        "reason": "leader",
+        "pattern": "\\bleaders?\\b"
+      },
+      {
+        "reason": "sales",
+        "pattern": "\\bsales?\\b"
+      },
+      {
+        "reason": "supervisor",
+        "pattern": "\\bsupervisors?\\b"
+      },
+      {
+        "reason": "operator",
+        "pattern": "\\boperators?\\b"
+      },
+      {
+        "reason": "maintenance",
+        "pattern": "\\bmaintenance\\b"
+      },
+      {
+        "reason": "attorney",
+        "pattern": "\\battorneys?\\b"
+      },
+      {
+        "reason": "recruiter",
+        "pattern": "\\brecruiters?\\b"
+      },
+      {
+        "reason": "legal",
+        "pattern": "\\blegal\\b"
+      },
+      {
+        "reason": "mechanic",
+        "pattern": "\\bmechanics?\\b"
+      },
+      {
+        "reason": "bachelor",
+        "pattern": "\\bbachelors?\\b"
+      },
+      {
+        "reason": "representative",
+        "pattern": "\\brepresentatives?\\b"
+      },
+      {
+        "reason": "nurse",
+        "pattern": "\\bnurses?\\b"
+      },
+      {
+        "reason": "warehouse",
+        "pattern": "\\bwarehouses?\\b"
+      },
+      {
+        "reason": "handler",
+        "pattern": "\\bhandlers?\\b"
+      }
+    ],
+    "includeTitlePatterns": []
+  },
+  "robots": [
+    {
+      "id": "e1994465-b76e-46e2-9dfb-5f60c08998a8",
+      "name": "intel",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": ["Label 1", "Label 8", "Label 9"],
+        "url": "Label 2",
+        "location": "Label 3",
+        "date": "Label 5",
+        "id": "Label 7"
+      },
+      "static": {
+        "company": "Intel"
+      }
+    },
+    {
+      "id": "0c320cc8-9ae8-48a1-b317-6927c492a7f3",
+      "name": "merck",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 3"
+      },
+      "static": {
+        "company": "Merck"
+      }
+    },
+    {
+      "id": "eb258d4c-9839-4ec5-8611-33c9d5151c45",
+      "name": "appliedmaterials",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 3",
+        "date": "Label 5"
+      },
+      "static": {
+        "company": "Applied Materials"
+      }
+    },
+    {
+      "id": "833ca1b0-fad5-4e09-8cfa-802dbaf22ac6",
+      "name": "Dow",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 3",
+        "location": "Label 5",
+        "date": "Label 6"
+      },
+      "static": {
+        "company": "Dow"
+      }
+    },
+    {
+      "id": "22a35bc2-a358-442a-a4e9-3e5da51d1aff",
+      "name": "Sinopec",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 1",
+        "url": "Label 2"
+      },
+      "static": {
+        "company": "Sinopec"
+      }
+    },
+    {
+      "id": "4fb5e9f3-cd26-4df1-9603-f10da59fae60",
+      "name": "AbbVie",
+      "itemsPath": [
+        "data.serializableOutput.scrapeList.List Data 1",
+        "data.serializableOutput.scrapeList.List Data 2"
+      ],
+      "fields": {
+        "title": "Label 4",
+        "url": "Label 5",
+        "location": "Label 1",
+        "id": "Label 9"
+      },
+      "static": {
+        "company": "AbbVie"
+      }
+    },
+    {
+      "id": "0c866fd8-d751-4d05-b10a-343ecf7f7ee5",
+      "name": "Formosa",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 3",
+        "date": "Label 4",
+        "id": "Label 7"
+      },
+      "static": {
+        "company": "Formosa"
+      }
+    },
+    {
+      "id": "fdab11e6-11c4-4111-abf6-c0397cab07c2",
+      "name": "Cargill",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 3"
+      },
+      "static": {
+        "company": "Cargill"
+      }
+    },
+    {
+      "id": "58f6bb00-1628-4c23-b9c4-77b6ab12b05f",
+      "name": "jnj",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 3",
+        "location": "Label 5"
+      },
+      "static": {
+        "company": "J&J"
+      }
+    },
+    {
+      "id": "5f2c4016-0fc6-4834-a148-344089e940ad",
+      "name": "Linde",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 3",
+        "date": "Label 4"
+      },
+      "static": {
+        "company": "Linde"
+      }
+    },
+    {
+      "id": "cfec3b4a-e8b1-40e9-aca9-19345ad4782b",
+      "name": "Cellares",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 5"
+      },
+      "static": {
+        "company": "Cellares"
+      }
+    },
+    {
+      "id": "e455aa79-9deb-46f1-8a26-17e7ee70009f",
+      "name": "Air Liquide",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 1",
+        "url": "Label 2",
+        "location": "Label 3",
+        "date": "Label 5",
+        "id": "Label 7"
+      },
+      "static": {
+        "company": "Air Liquide"
+      }
+    },
+    {
+      "id": "5db58c25-47a8-443c-9253-774a1134f083",
+      "name": "PPG",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 3",
+        "url": "Label 2",
+        "id": "Label 8"
+      },
+      "static": {
+        "company": "PPG"
+      }
+    },
+    {
+      "id": "7534b717-04f8-47e1-9a1f-86d0227a97a6",
+      "name": "Air Products",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 1",
+        "url": "Label 2",
+        "location": "Label 3",
+        "date": "Label 5",
+        "id": "Label 7"
+      },
+      "static": {
+        "company": "Air Products"
+      }
+    },
+    {
+      "id": "673bd58a-90f6-499e-8a9c-48ad5f44ddad",
+      "name": "GlobalFoundries",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 2",
+        "url": "Label 1",
+        "location": "Label 3",
+        "date": "Label 4"
+      },
+      "static": {
+        "company": "GlobalFoundries"
+      }
+    },
+    {
+      "id": "2d588e61-2e8e-47cf-b5a4-18f409cfac4c",
+      "name": "sanofi",
+      "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
+      "fields": {
+        "title": "Label 1",
+        "url": "Label 2",
+        "location": "Label 3",
+        "date": "Label 7",
+        "id": "Label 9"
+      },
+      "static": {
+        "company": "Sanofi"
+      }
+    },
+    {
+      "company": "Western Digital",
+      "source": "smartrecruiters",
+      "source_config": {
+        "company_identifier": "WesternDigital",
+        "country": "us"
+      }
+    },
+    {
+      "company": "SK hynix America",
+      "source": "greenhouse",
+      "source_config": {
+        "board_url": "https://job-boards.greenhouse.io/skhynixamerica"
+      }
+    }
+  ]
+}

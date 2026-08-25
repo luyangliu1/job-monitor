@@ -1,0 +1,4 @@
+interface:
+  display_name: "Job Source Monitor"
+  short_description: "Monitor Maxun, SmartRecruiters, and Greenhouse jobs"
+  default_prompt: "Use $maxun-job-monitor to scan my configured company job sources and report only new openings."
