@@ -6,7 +6,9 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { extractBoardToken, getJobs as getGreenhouseJobs } from "./sources/greenhouse.mjs";
+import { getJobs as getJobSpyJobs } from "./sources/jobspy.mjs";
 import { getJobs as getSmartRecruitersJobs } from "./sources/smartrecruiters.mjs";
+import { ensureV2Schema } from "./v2-schema.mjs";
 
 const SKILL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = process.env.MAXUN_JOB_MONITOR_CONFIG || resolve(SKILL_DIR, "config.json");
@@ -15,7 +17,8 @@ const DB_PATH = process.env.MAXUN_JOB_MONITOR_DB || resolve(STATE_DIR, "maxun-jo
 const API_KEY = process.env.MAXUN_API_KEY || "";
 const BASE_URL = (process.env.MAXUN_BASE_URL || "https://app.maxun.dev").replace(/\/+$/, "");
 const API_TIMEOUT_MS = 3 * 60 * 60 * 1000;
-const SUPPORTED_JOB_SOURCES = new Set(["maxun", "smartrecruiters", "greenhouse"]);
+const SUPPORTED_JOB_SOURCES = new Set(["maxun", "smartrecruiters", "greenhouse", "jobspy"]);
+const SUPPORTED_REGIONS = new Set(["US", "ROW"]);
 
 const FIELD_ALIASES = {
   title: ["jobTitle", "title", "positionTitle", "position", "role", "jobName"],
@@ -54,8 +57,31 @@ function jobSourceFor(robot) {
   return String(robot.source || "maxun").toLowerCase();
 }
 
+function taggedMaxunRegion(name) {
+  const match = String(name || "").match(/-(US|ROW)$/iu);
+  return match ? match[1].toUpperCase() : "";
+}
+
+function displayMaxunName(name) {
+  return String(name || "").replace(/-(?:US|ROW)$/iu, "").trim();
+}
+
+function regionForRobot(robot) {
+  const configured = String(robot.region || "").toUpperCase();
+  return configured || (jobSourceFor(robot) === "maxun" ? taggedMaxunRegion(robot.name) : "");
+}
+
 function companyForRobot(robot) {
-  return scalar(robot.company) || scalar(robot.static?.company) || scalar(robot.name) || scalar(robot.id);
+  const value = scalar(robot.company) || scalar(robot.static?.company) || scalar(robot.name) || scalar(robot.id);
+  return jobSourceFor(robot) === "maxun" ? displayMaxunName(value) : value;
+}
+
+function robotMatchesSelector(robot, selector, { liveMaxun = false } = {}) {
+  const normalized = String(selector || "").trim().toLowerCase();
+  if (!normalized) return false;
+  const candidates = [robot.id, robot.name, companyForRobot(robot)];
+  if (liveMaxun) candidates.push(companyNameForRobot(robot));
+  return candidates.some((value) => String(value || "").trim().toLowerCase() === normalized);
 }
 
 function normalizeConfiguredRobot(robot, index) {
@@ -84,7 +110,15 @@ function normalizeConfiguredRobot(robot, index) {
         "A company must use exactly one Maxun robot ID.",
       );
     }
-    return { ...robot, id };
+    const suffixRegion = taggedMaxunRegion(robot.name);
+    const region = String(robot.region || suffixRegion).toUpperCase();
+    if (region && !SUPPORTED_REGIONS.has(region)) {
+      fail(`robots[${index}].region '${robot.region}' is not supported.`, "Use 'US' or 'ROW'.");
+    }
+    if (suffixRegion && region && suffixRegion !== region) {
+      fail(`robots[${index}] has conflicting Maxun name suffix and region '${region}'.`);
+    }
+    return { ...robot, id, source: "maxun", ...(region ? { region } : {}) };
   }
 
   const company = companyForRobot(robot);
@@ -136,6 +170,27 @@ function normalizeConfiguredRobot(robot, index) {
       ...common,
       id: scalar(robot.id) || `greenhouse:${boardToken.toLowerCase()}`,
       source_config: { ...sourceConfig, board_url: boardUrl },
+    };
+  }
+  if (source === "jobspy") {
+    const region = String(robot.region || "").toUpperCase();
+    if (!SUPPORTED_REGIONS.has(region)) {
+      fail(`robots[${index}].region must be 'US' or 'ROW' for source=jobspy.`, `Fix ${CONFIG_PATH} and retry.`);
+    }
+    for (const key of ["keywords", "sites"]) {
+      if (!Array.isArray(sourceConfig[key]) || sourceConfig[key].length === 0) {
+        fail(`robots[${index}].source_config.${key} must be a non-empty array.`, `Fix ${CONFIG_PATH} and retry.`);
+      }
+    }
+    if (region === "ROW" && (!Array.isArray(sourceConfig.countries) || sourceConfig.countries.length === 0)) {
+      fail(`robots[${index}].source_config.countries must be a non-empty array for ROW.`, `Fix ${CONFIG_PATH} and retry.`);
+    }
+    return {
+      ...common,
+      id: scalar(robot.id) || `jobspy:${region.toLowerCase()}`,
+      region,
+      fields: { title: "name", url: "url", company: "company", location: "location", date: "date" },
+      static: {},
     };
   }
   fail(`Unsupported job source: ${source}`);
@@ -698,15 +753,13 @@ function loadConfig() {
 function selectedRobots(config, selector) {
   const robots = config.allRobots || config.robots;
   if (selector === "--all" || selector === undefined) {
-    if (robots.length === 0) {
+    const enabled = robots.filter((robot) => robot.enabled !== false);
+    if (enabled.length === 0) {
       fail("No company job sources are configured.", `Add a source to ${CONFIG_PATH}, then retry.`);
     }
-    return robots;
+    return enabled;
   }
-  const normalized = selector.toLowerCase();
-  const robot = robots.find(
-    (entry) => entry.id.toLowerCase() === normalized || String(entry.name || "").toLowerCase() === normalized,
-  );
+  const robot = robots.find((entry) => robotMatchesSelector(entry, selector));
   if (!robot) {
     fail(
       `Company source '${selector}' is not configured.`,
@@ -980,6 +1033,7 @@ function openDatabase() {
   for (const [column, statement] of migrations) {
     if (!jobColumns.has(column)) db.exec(statement);
   }
+  ensureV2Schema(db);
   db.exec(`
     UPDATE jobs
     SET recorded_at = CASE
@@ -1094,10 +1148,22 @@ function mergedConfig(config, db) {
     ...loadAutoConfiguredRobots(db).filter((robot) => !manualIds.has(robot.id.toLowerCase())),
   ];
   const underlyingIds = new Set(underlying.map((robot) => robot.id.toLowerCase()));
+  const mergeManaged = (robot) => {
+    const managed = managedMappings.get(robot.id.toLowerCase());
+    if (!managed) return robot;
+    return {
+      ...robot,
+      ...managed,
+      source: robot.source || managed.source || "maxun",
+      region: managed.region || robot.region,
+      source_config: managed.source_config || robot.source_config,
+      notificationFilters: managed.notificationFilters || robot.notificationFilters,
+    };
+  };
   return {
     ...config,
     allRobots: [
-      ...underlying.map((robot) => withSourceUrl(managedMappings.get(robot.id.toLowerCase()) || robot)),
+      ...underlying.map((robot) => withSourceUrl(mergeManaged(robot))),
       ...managedRobots.filter((robot) => !underlyingIds.has(robot.id.toLowerCase())).map(withSourceUrl),
     ],
   };
@@ -1115,6 +1181,40 @@ function saveRobotSources(db, robots) {
   for (const robot of robots) {
     const sourceUrl = canonicalUrl(robot.url || robot.sourceUrl || "");
     if (robot.id && validHttpUrl(sourceUrl)) upsert.run(robot.id, sourceUrl, now);
+  }
+}
+
+function refreshStoredMaxunMetadata(db, liveRobots) {
+  const liveById = new Map(
+    liveRobots.filter((robot) => robot.id).map((robot) => [robot.id.toLowerCase(), robot]),
+  );
+  const refreshTable = (table) => {
+    const rows = db.prepare(`SELECT robot_id, config_json FROM ${table}`).all();
+    const update = db.prepare(`UPDATE ${table} SET robot_name = ?, config_json = ? WHERE robot_id = ?`);
+    for (const row of rows) {
+      const live = liveById.get(row.robot_id.toLowerCase());
+      if (!live) continue;
+      let stored;
+      try {
+        stored = JSON.parse(row.config_json);
+      } catch {
+        continue;
+      }
+      const region = taggedMaxunRegion(live.name);
+      const refreshed = { ...stored, name: live.name || stored.name };
+      if (region) refreshed.region = region;
+      else delete refreshed.region;
+      update.run(refreshed.name || row.robot_id, JSON.stringify(refreshed), row.robot_id);
+    }
+  };
+  refreshTable("robot_configs");
+  refreshTable("robot_mapping_overrides");
+}
+
+function backfillStoredJobMetadata(db, robots) {
+  const update = db.prepare("UPDATE jobs SET job_source = ?, region = ? WHERE robot_id = ?");
+  for (const robot of robots) {
+    update.run(jobSourceFor(robot), regionForRobot(robot), robot.id);
   }
 }
 
@@ -1236,7 +1336,7 @@ function looksLikeCompensation(value) {
 }
 
 function companyNameForRobot(robotMeta) {
-  const name = String(robotMeta.name || robotMeta.id)
+  const name = displayMaxunName(robotMeta.name || robotMeta.id)
     .trim()
     .replace(/\s+(?:jobs?|careers?)$/i, "")
     .replace(
@@ -1441,6 +1541,7 @@ function inferCandidate(candidate, robotMeta) {
     robot: {
       id: robotMeta.id,
       name: displayName,
+      region: taggedMaxunRegion(displayName),
       itemsPath: candidate.path,
       fields,
       static: { company: companyNameForRobot(robotMeta) },
@@ -1478,15 +1579,13 @@ async function synchronizeRobotConfigs(config, selector, useLatest, payloadPath)
   } else {
     liveRobots = await listRobots();
     saveRobotSources(db, liveRobots);
+    refreshStoredMaxunMetadata(db, liveRobots);
     liveRobots = liveRobots.filter(
       (robot) => !nonMaxunCompanies.has(normalizeKey(companyNameForRobot(robot))),
     );
   }
   if (selector && selector !== "--all") {
-    const normalized = selector.toLowerCase();
-    liveRobots = liveRobots.filter(
-      (robot) => robot.id.toLowerCase() === normalized || String(robot.name || "").toLowerCase() === normalized,
-    );
+    liveRobots = liveRobots.filter((robot) => robotMatchesSelector(robot, selector, { liveMaxun: true }));
     if (liveRobots.length === 0) {
       db.close();
       throw new Error(`Maxun robot '${selector}' was not found`);
@@ -1496,6 +1595,15 @@ async function synchronizeRobotConfigs(config, selector, useLatest, payloadPath)
   const configured = [];
   const needsReview = [];
   for (const robotMeta of liveRobots.filter((robot) => robot.id && !knownIds.has(robot.id.toLowerCase()))) {
+    if (!payloadPath && !taggedMaxunRegion(robotMeta.name)) {
+      needsReview.push({
+        robotId: robotMeta.id,
+        robotName: robotMeta.name || robotMeta.id,
+        reason: "Maxun robot name is missing the required -US or -ROW suffix.",
+        nextAction: `Rename the Maxun robot to end in -US or -ROW, then run 'sync-config ${robotMeta.id}'.`,
+      });
+      continue;
+    }
     try {
       const payload = payloadPath ? parseJsonFile(payloadPath, "fixture payload") : await payloadFor(robotMeta, useLatest);
       const inferred = inferRobotConfig(robotMeta, payload);
@@ -1542,6 +1650,7 @@ async function synchronizeRobotConfigs(config, selector, useLatest, payloadPath)
     needsReview,
   };
   const updated = mergedConfig(config, db);
+  backfillStoredJobMetadata(db, updated.allRobots);
   db.close();
   return { result, config: updated };
 }
@@ -1552,8 +1661,8 @@ function storeJobs(db, robot, normalized, mode, sourcePath) {
   const upsert = db.prepare(`
     INSERT INTO jobs (
       robot_id, item_key, title, company, location, job_date, url, raw_json,
-      recorded_at, first_seen_at, last_seen_at, is_current
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      recorded_at, first_seen_at, last_seen_at, job_source, region, is_current
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     ON CONFLICT(robot_id, item_key) DO UPDATE SET
       title = excluded.title,
       company = excluded.company,
@@ -1562,6 +1671,8 @@ function storeJobs(db, robot, normalized, mode, sourcePath) {
       url = excluded.url,
       raw_json = excluded.raw_json,
       last_seen_at = excluded.last_seen_at,
+      job_source = excluded.job_source,
+      region = excluded.region,
       is_current = 1
   `);
   const markMissing = db.prepare("UPDATE jobs SET is_current = 0 WHERE robot_id = ?");
@@ -1575,6 +1686,8 @@ function storeJobs(db, robot, normalized, mode, sourcePath) {
       url = ?,
       raw_json = ?,
       last_seen_at = ?,
+      job_source = ?,
+      region = ?,
       is_current = 1
     WHERE robot_id = ? AND item_key = ?
   `);
@@ -1610,6 +1723,8 @@ function storeJobs(db, robot, normalized, mode, sourcePath) {
           job.url,
           JSON.stringify(job.raw),
           now,
+          jobSourceFor(robot),
+          regionForRobot(robot),
           robot.id,
           legacyMatches[0],
         );
@@ -1629,6 +1744,8 @@ function storeJobs(db, robot, normalized, mode, sourcePath) {
           now,
           now,
           now,
+          jobSourceFor(robot),
+          regionForRobot(robot),
         );
       }
       if (isNew) newJobs.push(job);
@@ -1875,7 +1992,7 @@ async function retrieveItems(robot, useLatest, payloadPath) {
   }
   if (source === "smartrecruiters") {
     const items = await getSmartRecruitersJobs(
-      { company: companyForRobot(robot), source_config: robot.source_config },
+      { company: companyForRobot(robot), region: regionForRobot(robot), source_config: robot.source_config },
       { log: (message) => process.stderr.write(`${message}\n`) },
     );
     return { path: "smartrecruiters-public-api", items };
@@ -1886,6 +2003,13 @@ async function retrieveItems(robot, useLatest, payloadPath) {
       { log: (message) => process.stderr.write(`${message}\n`) },
     );
     return { path: "greenhouse-job-board-api", items };
+  }
+  if (source === "jobspy") {
+    const items = await getJobSpyJobs(
+      { company: companyForRobot(robot), region: regionForRobot(robot), source_config: robot.source_config },
+      { log: (message) => process.stderr.write(`${message}\n`) },
+    );
+    return { path: "jobspy-service", items };
   }
   throw new Error(`Unsupported job source: ${source}`);
 }
@@ -2090,10 +2214,8 @@ async function main() {
     if (!selector || selector.startsWith("--")) fail("mapping-set requires one robot ID or exact Maxun name.");
     const db = openDatabase();
     const available = mergedConfig(config, db);
-    const normalizedSelector = selector.toLowerCase();
     let current = (available.allRobots || available.robots).find(
-      (robot) =>
-        robot.id.toLowerCase() === normalizedSelector || String(robot.name || "").toLowerCase() === normalizedSelector,
+      (robot) => robotMatchesSelector(robot, selector),
     );
     let newlyDiscovered = false;
     if (!current) {
@@ -2105,18 +2227,17 @@ async function main() {
         fail(error.message, "Verify Maxun connectivity, then retry mapping-set.");
       }
       const matches = liveRobots.filter(
-        (robot) =>
-          robot.id.toLowerCase() === normalizedSelector || String(robot.name || "").toLowerCase() === normalizedSelector,
+        (robot) => robotMatchesSelector(robot, selector, { liveMaxun: true }),
       );
       if (matches.length === 0) {
         db.close();
         fail(`Maxun robot '${selector}' was not found.`, "Run 'robots' and retry with an exact ID or name.");
       }
-      if (matches.length > 1 && !matches.some((robot) => robot.id.toLowerCase() === normalizedSelector)) {
+      if (matches.length > 1 && !matches.some((robot) => robot.id.toLowerCase() === selector.toLowerCase())) {
         db.close();
         fail(`More than one Maxun robot is named '${selector}'.`, "Retry mapping-set with the robot ID.");
       }
-      const liveRobot = matches.find((robot) => robot.id.toLowerCase() === normalizedSelector) || matches[0];
+      const liveRobot = matches.find((robot) => robot.id.toLowerCase() === selector.toLowerCase()) || matches[0];
       saveRobotSources(db, [liveRobot]);
       current = {
         id: liveRobot.id,
@@ -2457,11 +2578,7 @@ async function main() {
 
   if (command === "sync-config") {
     const selectedConfigured = selector && selector !== "--all"
-      ? config.robots.find(
-          (robot) =>
-            robot.id.toLowerCase() === selector.toLowerCase() ||
-            String(robot.name || "").toLowerCase() === selector.toLowerCase(),
-        )
+      ? config.robots.find((robot) => robotMatchesSelector(robot, selector))
       : null;
     if (selectedConfigured && jobSourceFor(selectedConfigured) !== "maxun") {
       fail(
@@ -2493,7 +2610,7 @@ async function main() {
       db.close();
     }
     const configured = (available.allRobots || available.robots).find(
-      (entry) => entry.id.toLowerCase() === selector.toLowerCase() || String(entry.name || "").toLowerCase() === selector.toLowerCase(),
+      (entry) => robotMatchesSelector(entry, selector),
     );
     const robots = [configured || { id: selector }];
     if (robots.length !== 1) fail("inspect requires one configured robot ID or name.");
@@ -2516,11 +2633,7 @@ async function main() {
   let available = config;
   let autoConfiguration = { checked: 0, configured: [], needsReview: [] };
   const manuallySelected = selector && selector !== "--all"
-    ? config.robots.find(
-        (robot) =>
-          robot.id.toLowerCase() === selector.toLowerCase() ||
-          String(robot.name || "").toLowerCase() === selector.toLowerCase(),
-      )
+    ? config.robots.find((robot) => robotMatchesSelector(robot, selector))
     : null;
   const shouldDiscoverMaxun = !manuallySelected || jobSourceFor(manuallySelected) === "maxun";
   if (config.autoConfigure === true && !payloadPath && shouldDiscoverMaxun) {

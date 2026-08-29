@@ -1,4 +1,5 @@
 import { DEFAULT_HTTP_TIMEOUT_MS, fetchJson, nonEmptyString } from "./http.mjs";
+import { textFromHtml } from "./text.mjs";
 
 const DEFAULT_BASE_URL = "https://boards-api.greenhouse.io";
 const GREENHOUSE_BOARD_HOSTS = new Set(["job-boards.greenhouse.io", "boards.greenhouse.io"]);
@@ -52,7 +53,8 @@ export async function getJobs(companyConfig, options = {}) {
   const timeoutMs = options.timeoutMs || DEFAULT_HTTP_TIMEOUT_MS;
   const log = options.log || (() => {});
   const baseUrl = String(options.baseUrl || process.env.GREENHOUSE_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const jobsUrl = `${baseUrl}/v1/boards/${encodeURIComponent(boardToken)}/jobs`;
+  const jobsUrl = new URL(`${baseUrl}/v1/boards/${encodeURIComponent(boardToken)}/jobs`);
+  jobsUrl.searchParams.set("content", "true");
 
   log(`[${company}] source=greenhouse`);
   log(`[${company}] board=${boardToken}`);
@@ -78,7 +80,7 @@ export async function getJobs(companyConfig, options = {}) {
       malformedCount += 1;
       continue;
     }
-    jobs.push({ name, url });
+    jobs.push({ name, url, description: textFromHtml(job?.content) });
   }
   if (malformedCount > 0) {
     log(`[${company}] skipped ${malformedCount} malformed Greenhouse job${malformedCount === 1 ? "" : "s"}`);

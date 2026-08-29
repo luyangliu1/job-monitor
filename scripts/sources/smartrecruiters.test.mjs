@@ -54,10 +54,11 @@ const paginatedJobs = await getJobs(
 assert.deepEqual(offsets, [0, 100]);
 assert.equal(detailIds.length, 102);
 assert.equal(paginatedJobs.length, 102);
-assert.deepEqual(Object.keys(paginatedJobs[0]), ["name", "url"]);
+assert.deepEqual(Object.keys(paginatedJobs[0]), ["name", "url", "description"]);
 assert.deepEqual(paginatedJobs[0], {
   name: "Role 0",
   url: "https://jobs.smartrecruiters.com/WesternDigital/posting-0-role",
+  description: "",
 });
 assert.ok(!paginatedJobs.some((job) => job.url.includes("api.test.invalid")));
 
@@ -209,7 +210,7 @@ try {
     SMARTRECRUITERS_BASE_URL: `http://127.0.0.1:${address.port}`,
   };
   const checked = await runMonitor(["config-check"], env);
-  assert.deepEqual(checked.body.sourceCounts, { maxun: 1, smartrecruiters: 1, greenhouse: 0 });
+  assert.deepEqual(checked.body.sourceCounts, { maxun: 1, smartrecruiters: 1, greenhouse: 0, jobspy: 0 });
 
   const baseline = await runMonitor(["baseline", "Western Digital"], env);
   assert.equal(baseline.body.status, "ok");

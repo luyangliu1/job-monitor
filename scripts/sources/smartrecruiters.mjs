@@ -1,4 +1,5 @@
 import { DEFAULT_HTTP_TIMEOUT_MS, fetchJson, nonEmptyString } from "./http.mjs";
+import { combineTextSections } from "./text.mjs";
 
 const DEFAULT_BASE_URL = "https://api.smartrecruiters.com";
 const PAGE_LIMIT = 100;
@@ -139,6 +140,11 @@ export async function getJobs(companyConfig, options = {}) {
     return {
       name: posting.name,
       url: validatePublicPostingUrl(detail.postingUrl, company, posting.id),
+      description: combineTextSections(
+        detail?.jobAd?.sections?.jobDescription?.text,
+        detail?.jobAd?.sections?.qualifications?.text,
+        detail?.jobAd?.sections?.additionalInformation?.text,
+      ),
     };
   });
   log(`[${company}] normalized ${jobs.length} jobs`);

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const MONITOR_PATH = resolve(SCRIPT_DIR, "job-monitor.mjs");
+const PIPELINE_PATH = resolve(SCRIPT_DIR, "job-pipeline.mjs");
 const OPENCLAW_CLI_PATH = process.env.OPENCLAW_CLI_PATH || "/app/dist/index.js";
 const TELEGRAM_SAFE_LIMIT = 3500;
 
@@ -117,9 +118,9 @@ export function formatDailyReportChunks(result, maxLength = TELEGRAM_SAFE_LIMIT)
   return chunks;
 }
 
-function runMonitor() {
+function runJsonScript(path, args) {
   return new Promise((resolveResult, reject) => {
-    const child = spawn(process.execPath, [MONITOR_PATH, "scan", "--all"], {
+    const child = spawn(process.execPath, [path, ...args], {
       env: process.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -139,7 +140,7 @@ function runMonitor() {
         if (!stdout.trim()) throw new Error(cleanText(stderr) || `monitor exited with status ${code}`);
         resolveResult(JSON.parse(stdout));
       } catch (error) {
-        reject(new Error(`Could not read job-monitor result: ${error.message}`));
+        reject(new Error(`Could not read ${path.split("/").at(-1)} result: ${error.message}`));
       }
     });
   });
@@ -177,19 +178,19 @@ function argumentValue(args, flag) {
 
 async function main() {
   try {
-    const result = await runMonitor();
+    const startedAt = new Date().toISOString();
+    const result = await runJsonScript(MONITOR_PATH, ["scan", "--all"]);
     const target = argumentValue(process.argv.slice(2), "--telegram-target") || process.env.MAXUN_JOB_REPORT_TELEGRAM_TARGET;
-    if (!target) {
-      process.stdout.write(`${formatDailyReport(result)}\n`);
-      return;
+    const pipeline = await runJsonScript(PIPELINE_PATH, ["run", "--compatibility-since", startedAt]);
+    const issues = [...(result.errors || []), ...(result.autoConfiguration?.needsReview || [])];
+    let issueChunks = 0;
+    if (target && issues.length > 0) {
+      const issueResult = { ...result, newCount: 0, newPositionCount: 0, newJobsByCompany: [] };
+      const chunks = formatDailyReportChunks(issueResult);
+      for (const chunk of chunks) await sendTelegramMessage(target, chunk);
+      issueChunks = chunks.length;
     }
-    const chunks = formatDailyReportChunks(result);
-    if (chunks.length === 0) {
-      process.stdout.write("NO_REPLY\n");
-      return;
-    }
-    for (const chunk of chunks) await sendTelegramMessage(target, chunk);
-    process.stdout.write(`Delivered ${chunks.length} Telegram message ${plural(chunks.length, "chunk")}.\n`);
+    process.stdout.write(`${JSON.stringify({ status: pipeline.status, scan: result, pipeline, issueChunks }, null, 2)}\n`);
   } catch (error) {
     process.stderr.write(`Job monitor delivery failed: ${cleanText(error.message)}\n`);
     process.exitCode = 1;

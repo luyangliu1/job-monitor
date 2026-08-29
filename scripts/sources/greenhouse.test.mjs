@@ -30,13 +30,14 @@ const normalized = await getJobs(
     log: (message) => logs.push(message),
     fetchImpl: async (input) => {
       requestCount += 1;
-      assert.equal(String(input), "https://greenhouse.test.invalid/v1/boards/skhynixamerica/jobs");
+      assert.equal(String(input), "https://greenhouse.test.invalid/v1/boards/skhynixamerica/jobs?content=true");
       return new Response(JSON.stringify({
         jobs: [
           {
             id: 1,
             title: "Process Integration Engineer",
             absolute_url: "https://job-boards.greenhouse.io/skhynixamerica/jobs/1",
+            content: "<p>Build process models &amp; experiments.</p>",
             departments: [{ name: "Engineering" }],
           },
           {
@@ -56,13 +57,15 @@ assert.deepEqual(normalized, [
   {
     name: "Process Integration Engineer",
     url: "https://job-boards.greenhouse.io/skhynixamerica/jobs/1",
+    description: "Build process models & experiments.",
   },
   {
     name: "Financial Analyst",
     url: "https://job-boards.greenhouse.io/skhynixamerica/jobs/2",
+    description: "",
   },
 ]);
-assert.deepEqual(Object.keys(normalized[0]), ["name", "url"]);
+assert.deepEqual(Object.keys(normalized[0]), ["name", "url", "description"]);
 assert.ok(logs.some((message) => message.includes("board=skhynixamerica")));
 assert.ok(logs.some((message) => message.includes("skipped 1 malformed")));
 
@@ -142,7 +145,7 @@ const server = createServer((request, response) => {
     response.end("Maxun must not be called");
     return;
   }
-  if (request.url === "/v1/boards/skhynixamerica/jobs") {
+  if (request.url === "/v1/boards/skhynixamerica/jobs?content=true") {
     greenhouseRequests += 1;
     if (failRetrieval) {
       response.statusCode = 500;
@@ -170,7 +173,7 @@ try {
     GREENHOUSE_BASE_URL: `http://127.0.0.1:${address.port}`,
   };
   const checked = await runMonitor(["config-check"], env);
-  assert.deepEqual(checked.body.sourceCounts, { maxun: 0, smartrecruiters: 0, greenhouse: 1 });
+  assert.deepEqual(checked.body.sourceCounts, { maxun: 0, smartrecruiters: 0, greenhouse: 1, jobspy: 0 });
 
   const baseline = await runMonitor(["baseline", "SK hynix America"], env);
   assert.equal(baseline.body.status, "ok");
@@ -187,7 +190,7 @@ try {
     "SELECT raw_json, url FROM jobs WHERE robot_id = ? ORDER BY title",
   ).all("greenhouse:skhynixamerica");
   assert.equal(stored.length, 2);
-  assert.deepEqual(Object.keys(JSON.parse(stored[0].raw_json)), ["name", "url"]);
+  assert.deepEqual(Object.keys(JSON.parse(stored[0].raw_json)), ["description", "name", "url"]);
   const scansBefore = db.prepare(
     "SELECT COUNT(*) AS count FROM scans WHERE robot_id = ?",
   ).get("greenhouse:skhynixamerica").count;

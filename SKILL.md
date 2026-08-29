@@ -1,6 +1,6 @@
 ---
 name: maxun-job-monitor
-description: Monitor configured Maxun, SmartRecruiters, or Greenhouse company job sources; persist every discovered opening; report only unseen jobs; manage deny filters and Maxun field mappings; and query filtered history. Use for requests to ingest job-monitoring companies, check career sites, find new openings, change denied title keywords, correct Maxun mappings after retraining, review suppressed jobs, baseline results, or run a scheduled check.
+description: Monitor Maxun, SmartRecruiters, Greenhouse, and JobSpy job sources; persist and deduplicate openings; manage title filters and Maxun mappings; classify accepted jobs by experience and CV relevance; and deliver or query regional reports. Use for company ingestion, new-job scans, denied keywords, scraper retraining, ranked jobs, filtered history, or scheduled checks.
 ---
 
 # Job Monitor
@@ -60,6 +60,14 @@ Use the deterministic helper for all monitoring. Do not compare source results i
   `{baseDir}/scripts/job-monitor.mjs filtered-jobs --all --since 2w --limit 100`
 - Validate configuration without calling any job source:
   `{baseDir}/scripts/job-monitor.mjs config-check`
+- Enrich and classify accepted current jobs, using durable retry state:
+  `{baseDir}/scripts/job-pipeline.mjs evaluate --all-current`
+- Bound preparation or evaluation to one logical source and region during a pilot:
+  `{baseDir}/scripts/job-pipeline.mjs evaluate --source-id jobspy:us --region US --enrich-limit 5 --evaluation-limit 25 --batch-size 5`
+- Deliver only already-evaluated jobs from that selected source and region:
+  `{baseDir}/scripts/job-pipeline.mjs deliver --source-id jobspy:us --region US`
+- Show content, evaluation, and delivery queue status:
+  `{baseDir}/scripts/job-pipeline.mjs status`
 - Produce a deterministic scheduled-delivery report by retrieving every configured company source:
   `{baseDir}/scripts/daily-report.mjs`
 - Deliver that report directly to Telegram in safe, complete-message chunks:
@@ -67,7 +75,9 @@ Use the deterministic helper for all monitoring. Do not compare source results i
 
 For a long-running `scan`, call `exec` with `yieldMs: 1000` and `timeout: 10800`. If it backgrounds, use `process` to wait for that same session; never start the scan twice.
 
-Use `daily-report.mjs` for command-based cron delivery. For Telegram schedules, pass `--telegram-target` and set cron fallback delivery to `none`; the script sends sequential chunks no longer than 3,500 characters through OpenClaw's configured Telegram channel. It packs complete company blocks when possible, splits oversized companies only between complete bullets, and repeats the company heading with `(continued)`. It never hands one oversized report to channel delivery. With no target it prints the grouped linked-title report to stdout. It reports partial-scan errors and prints exactly `NO_REPLY` when there are no new matching jobs and no errors.
+Use `daily-report.mjs` for command-based cron delivery. It scans every enabled source, then invokes the durable description/evaluation/delivery pipeline. Ranked routes read completed database state rather than an in-memory scan response. Configure route IDs through deployment environment variables and set cron fallback delivery to `none`. Scan issues are sent to the compatibility target without treating a partial scan as complete.
+
+For JobSpy, regional classification, description acquisition, scoped pilot commands, evaluation criteria, database tables, and Telegram route behavior, read [references/v2-pipeline.md](references/v2-pipeline.md).
 
 ## Workflow
 
@@ -137,6 +147,6 @@ Configure a Greenhouse company with its full hosted board URL:
 }
 ```
 
-The Greenhouse adapter parses the first URL path segment as the board token and requests `/v1/boards/{board_token}/jobs` from the public Greenhouse Job Board API. It retrieves the complete board once, without category configuration or per-job detail calls, and maps only `title` and `absolute_url` to `name` and `url`. It skips isolated malformed records with a compact warning. Invalid URLs, HTTP or JSON failures, a missing `jobs` array, or a wholly unusable nonempty response fail retrieval before database state is updated. A valid empty `jobs` array remains a successful empty board.
+The Greenhouse adapter parses the first URL path segment as the board token and requests `/v1/boards/{board_token}/jobs?content=true` from the public Greenhouse Job Board API. It retrieves the complete board once, including descriptions, without category configuration or per-job detail calls. It skips isolated malformed records with a compact warning. Invalid URLs, HTTP or JSON failures, a missing `jobs` array, or a wholly unusable nonempty response fail retrieval before database state is updated. A valid empty `jobs` array remains a successful empty board.
 
 Required environment for Maxun companies: `MAXUN_API_KEY`. Optional test/runtime overrides: `MAXUN_BASE_URL`, `SMARTRECRUITERS_BASE_URL`, and `GREENHOUSE_BASE_URL`; each defaults to its public production service. The deployment mounts the skill read-only and bind-mounts `data/maxun-job-monitor/` from the OpenClaw project at `/var/lib/maxun-job-monitor`. Job history, inferred and managed mappings, filter overrides, and cached Maxun source-page URLs live in `/var/lib/maxun-job-monitor/monitor.sqlite`, outside the containers and image lifecycle.

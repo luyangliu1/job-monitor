@@ -102,7 +102,8 @@
   "robots": [
     {
       "id": "e1994465-b76e-46e2-9dfb-5f60c08998a8",
-      "name": "intel",
+      "name": "intel-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": ["Label 1", "Label 8", "Label 9"],
@@ -117,7 +118,8 @@
     },
     {
       "id": "0c320cc8-9ae8-48a1-b317-6927c492a7f3",
-      "name": "merck",
+      "name": "merck-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -130,7 +132,8 @@
     },
     {
       "id": "eb258d4c-9839-4ec5-8611-33c9d5151c45",
-      "name": "appliedmaterials",
+      "name": "appliedmaterials-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -144,7 +147,8 @@
     },
     {
       "id": "833ca1b0-fad5-4e09-8cfa-802dbaf22ac6",
-      "name": "Dow",
+      "name": "Dow-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -158,7 +162,8 @@
     },
     {
       "id": "22a35bc2-a358-442a-a4e9-3e5da51d1aff",
-      "name": "Sinopec",
+      "name": "Sinopec-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 1",
@@ -170,7 +175,8 @@
     },
     {
       "id": "4fb5e9f3-cd26-4df1-9603-f10da59fae60",
-      "name": "AbbVie",
+      "name": "AbbVie-US",
+      "region": "US",
       "itemsPath": [
         "data.serializableOutput.scrapeList.List Data 1",
         "data.serializableOutput.scrapeList.List Data 2"
@@ -187,7 +193,8 @@
     },
     {
       "id": "0c866fd8-d751-4d05-b10a-343ecf7f7ee5",
-      "name": "Formosa",
+      "name": "Formosa-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -202,7 +209,8 @@
     },
     {
       "id": "fdab11e6-11c4-4111-abf6-c0397cab07c2",
-      "name": "Cargill",
+      "name": "Cargill-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -215,7 +223,8 @@
     },
     {
       "id": "58f6bb00-1628-4c23-b9c4-77b6ab12b05f",
-      "name": "jnj",
+      "name": "jnj-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -228,7 +237,8 @@
     },
     {
       "id": "5f2c4016-0fc6-4834-a148-344089e940ad",
-      "name": "Linde",
+      "name": "Linde-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -242,7 +252,8 @@
     },
     {
       "id": "cfec3b4a-e8b1-40e9-aca9-19345ad4782b",
-      "name": "Cellares",
+      "name": "Cellares-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -255,7 +266,8 @@
     },
     {
       "id": "e455aa79-9deb-46f1-8a26-17e7ee70009f",
-      "name": "Air Liquide",
+      "name": "Air Liquide-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 1",
@@ -270,7 +282,8 @@
     },
     {
       "id": "5db58c25-47a8-443c-9253-774a1134f083",
-      "name": "PPG",
+      "name": "PPG-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 3",
@@ -283,7 +296,8 @@
     },
     {
       "id": "7534b717-04f8-47e1-9a1f-86d0227a97a6",
-      "name": "Air Products",
+      "name": "Air Products-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 1",
@@ -298,7 +312,8 @@
     },
     {
       "id": "673bd58a-90f6-499e-8a9c-48ad5f44ddad",
-      "name": "GlobalFoundries",
+      "name": "GlobalFoundries-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 2",
@@ -312,7 +327,8 @@
     },
     {
       "id": "2d588e61-2e8e-47cf-b5a4-18f409cfac4c",
-      "name": "sanofi",
+      "name": "sanofi-US",
+      "region": "US",
       "itemsPath": "data.serializableOutput.scrapeList.List Data 1",
       "fields": {
         "title": "Label 1",
@@ -328,6 +344,7 @@
     {
       "company": "Western Digital",
       "source": "smartrecruiters",
+      "region": "US",
       "source_config": {
         "company_identifier": "WesternDigital",
         "country": "us"
@@ -336,8 +353,43 @@
     {
       "company": "SK hynix America",
       "source": "greenhouse",
+      "region": "US",
       "source_config": {
         "board_url": "https://job-boards.greenhouse.io/skhynixamerica"
+      }
+    },
+    {
+      "company": "JobSpy US",
+      "source": "jobspy",
+      "region": "US",
+      "source_config": {
+        "keywords": ["process engineer", "chemical engineer"],
+        "sites": ["indeed", "linkedin"],
+        "hours_old": 72,
+        "results_wanted": 200,
+        "linkedin_jitter_seconds": [10, 20]
+      }
+    },
+    {
+      "company": "JobSpy ROW",
+      "source": "jobspy",
+      "region": "ROW",
+      "enabled": false,
+      "source_config": {
+        "keywords": ["process engineer", "chemical engineer"],
+        "sites": ["indeed", "linkedin"],
+        "countries": [
+          "Germany", "United Kingdom", "France", "Netherlands", "Ireland", "Denmark",
+          "Finland", "Norway", "Austria", "Czechia", "Portugal", "Belgium",
+          "Switzerland", "Sweden", "Japan", "Canada", "Australia"
+        ],
+        "indeed_country_names": {
+          "United Kingdom": "UK",
+          "Czechia": "Czech Republic"
+        },
+        "hours_old": 72,
+        "results_wanted": 100,
+        "linkedin_jitter_seconds": [10, 20]
       }
     }
   ]

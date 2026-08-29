@@ -898,7 +898,7 @@ const liveFixture = fixtureEnv({ version: 1, outputLimit: 25, autoConfigure: tru
 const robot = {
   recording_meta: {
     id: "new-robot",
-    name: "TSMC-AZ",
+    name: "TSMC-US",
     type: "scrape",
   },
   recording: { workflow: [{ where: { url: "https://careers.tsmc.example/jobs" } }] },
@@ -962,6 +962,21 @@ try {
   assert.equal(discovered.autoConfiguration.configured[0].static.company, "TSMC");
   assert.equal(discovered.robots[0].autoBaselined, true);
   assert.equal(discovered.robots[0].itemCount, 1);
+
+  const liveDb = new DatabaseSync(liveFixture.env.MAXUN_JOB_MONITOR_DB);
+  liveDb.prepare("UPDATE jobs SET job_source='', region='' WHERE robot_id='new-robot'").run();
+  liveDb.close();
+  const refreshed = await run(["sync-config", "TSMC", "--latest"], liveEnv);
+  assert.equal(refreshed.status, "ok");
+  assert.equal(refreshed.checked, 1);
+  const refreshedDb = new DatabaseSync(liveFixture.env.MAXUN_JOB_MONITOR_DB);
+  assert.deepEqual(
+    refreshedDb.prepare("SELECT DISTINCT job_source, region FROM jobs WHERE robot_id='new-robot'").all().map((row) => ({ ...row })),
+    [{ job_source: "maxun", region: "US" }],
+  );
+  refreshedDb.close();
+  const taggedMapping = await run(["mapping-list", "TSMC"], liveEnv);
+  assert.equal(taggedMapping.mappings[0].id, "new-robot");
 
   robot.recording.workflow = [];
   executeItems = [
